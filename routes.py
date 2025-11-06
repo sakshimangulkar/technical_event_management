@@ -3,10 +3,7 @@ from vendor_routes import vendor_bp
 from user_routes import user_bp
 from admin_routes import admin_bp
 
-
-
 def register_blueprints(app, db):
-    # lazy import models and attach db
     import models
     models.DB = db
 
