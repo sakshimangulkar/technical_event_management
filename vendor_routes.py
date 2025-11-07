@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from models import Product, User, DB
+from models import User, db, Product 
 from functools import wraps
 
 vendor_bp = Blueprint('vendor', __name__, template_folder='../templates')
@@ -32,8 +32,8 @@ def add_product():
         qty = int(request.form['quantity'])
 
         p = Product(vendor_id=user.id, name=name, description=desc, price=price, quantity=qty)
-        DB.session.add(p)
-        DB.session.commit()
+        db.session.add(p)
+        db.session.commit()
 
         flash('Product added')
         return redirect(url_for('user.products'))

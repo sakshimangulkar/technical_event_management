@@ -1,33 +1,83 @@
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
 
-# Placeholder for lazy assignment
-DB = None  
+db = SQLAlchemy()  # initialized later in app.py
 
-def init_db(app, db):
-    """Initialize database and create tables."""
-    global DB
-    DB = db
+# --------------------------
+# USER MODEL
+# --------------------------
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(20), default='user')  # can be admin/vendor/user
+
+    def set_password(self, password):
+        from werkzeug.security import generate_password_hash
+        self.password = generate_password_hash(password)
+
+    def check_password(self, password):
+        from werkzeug.security import check_password_hash
+        return check_password_hash(self.password, password)
+
+
+# --------------------------
+# PRODUCT MODEL
+# --------------------------
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(255))
+    price = db.Column(db.Float, nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+
+    vendor = db.relationship('User', backref='products')
+
+
+# --------------------------
+# CART MODEL
+# --------------------------
+class CartItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    quantity = db.Column(db.Integer, default=1)
+
+    user = db.relationship('User', backref='cart_items')
+    product = db.relationship('Product')
+
+
+# --------------------------
+# ORDER MODEL
+# --------------------------
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    total = db.Column(db.Float)
+    status = db.Column(db.String(20), default='pending')
+
+    user = db.relationship('User', backref='orders')
+
+
+# --------------------------
+# ORDER ITEM MODEL
+# --------------------------
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    quantity = db.Column(db.Integer)
+    price = db.Column(db.Float)
+
+    order = db.relationship('Order', backref='order_items')
+    product = db.relationship('Product')
+
+
+# --------------------------
+# INIT DB FUNCTION
+# --------------------------
+def init_db(app):
+    db.init_app(app)
     with app.app_context():
         db.create_all()
-        print("✅ Database initialized successfully!")
-
-
-class User:
-    id = None  # for IDE hints
-
-
-# Use DB instead of db
-class User(DB.Model):
-    id = DB.Column(DB.Integer, primary_key=True)
-    name = DB.Column(DB.String(120), nullable=False)
-    email = DB.Column(DB.String(120), unique=True, nullable=False)
-    password_hash = DB.Column(DB.String(256), nullable=False)
-    role = DB.Column(DB.String(20), default='user')  # user, vendor, admin
-
-    def set_password(self, pwd):
-        self.password_hash = generate_password_hash(pwd)
-
-    def check_password(self, pwd):
-        return check_password_hash(self.password_hash, pwd)
